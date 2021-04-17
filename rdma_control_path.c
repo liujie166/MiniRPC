@@ -181,7 +181,7 @@ bool RdmaDestroyRes(struct RdmaResource* rdma_res)
 void main()
 {
   struct RdmaResource rdma_res;
-  rdma_res->is_preallocated = false;
+  rdma_res.is_preallocated = false;
   RdmaInit((char*)NULL, 0, &rdma_res);
   RdmaDestroyRes(&rdma_res);
 }
