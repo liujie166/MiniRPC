@@ -1,9 +1,9 @@
-#define RDMA_COMMON_H_
 #ifndef RDMA_COMMON_H_
+#define RDMA_COMMON_H_
 
 #include <stdio.h>
 #include <stdbool.h>
-
+#include <stdint.h>
 #include <infiniband/verbs.h>
 /* rdma control path */
 

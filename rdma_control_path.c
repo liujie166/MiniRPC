@@ -137,7 +137,7 @@ bool RdmaInit(char* dev_name, uint8_t port_id, struct RdmaResource* rdma_res)
 
 }
 
-bool RdmaDestroyRes(RdmaResource* rdma_res)
+bool RdmaDestroyRes(struct RdmaResource* rdma_res)
 {
   if (rdma_res->cq) {
     if (ibv_destroy_cq(rdma_res->cq)) {
@@ -172,5 +172,12 @@ bool RdmaDestroyRes(RdmaResource* rdma_res)
   }
 
   return true;
+}
 
+void main()
+{
+  struct RdmaResource rdma_res;
+  rdma_res->is_preallocated = false;
+  RdmaInit((char*)NULL, 0, &rdma_res);
+  RdmaDestroyRes(&rdma_res);
 }
