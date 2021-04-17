@@ -4,7 +4,7 @@ bool RdmaInit(char* dev_name, uint8_t port_id, struct RdmaResource* rdma_res)
 {
   struct ibv_device** dev_list = NULL;
   struct ibv_device* dev = NULL;
-  struct ibv_device* dev_ctx = NULL;
+  struct ibv_context* dev_ctx = NULL;
   int dev_num = 0;
 
   bool is_resolved = false;
@@ -57,7 +57,7 @@ bool RdmaInit(char* dev_name, uint8_t port_id, struct RdmaResource* rdma_res)
 
       memset(&port_attr, 0, sizeof(port_attr));
       if (port_id > 0) {
-        if (ibv_query_port(dev_ctx, port_id, port_attr)) {
+        if (ibv_query_port(dev_ctx, port_id, &port_attr)) {
           printf("Failed to query port");
           break;
         }
@@ -67,8 +67,12 @@ bool RdmaInit(char* dev_name, uint8_t port_id, struct RdmaResource* rdma_res)
         }
       }
     
-      for (uint8_t port_i = 1; port_i <= dev_attr.phys_port_cnt) {
+      for (uint8_t port_i = 1; port_i <= dev_attr.phys_port_cnt; port_i++) {
         memset(&port_attr, 0, sizeof(port_attr));
+        if (ibv_query_port(dev_ctx, port_i, &port_attr)) {
+          printf("Failed to query port\n");
+          break;
+        }
         if (port_attr.state == IBV_PORT_ACTIVE) {
           is_resolved = true;
           break;
@@ -102,26 +106,26 @@ bool RdmaInit(char* dev_name, uint8_t port_id, struct RdmaResource* rdma_res)
   pd = ibv_alloc_pd(dev_ctx);
   if (!pd) {
     printf("Failed to malloc pd\n");
-    ibv_destory_cq(cq);
+    ibv_destroy_cq(cq);
     ibv_close_device(dev_ctx);
     return false;
   }
 
   /* register memeory */
-  if (!rdma_res->is_proallocated) {
+  if (!rdma_res->is_preallocated) {
     rdma_res->memory_size = 64 * 1024 * 1024;
     rdma_res->memory = (void* )malloc(rdma_res->memory_size);
     printf("There is no pre-allocated memory, malloc %d memory for rdma\n", rdma_res->memory_size);
   }
   mr_flag = IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE | IBV_ACCESS_REMOTE_ATOMIC;
-  mr = ibv_query_port(pd, rdma_res->memory, rdma_res->memory_size, , mr_flag);
+  mr = ibv_reg_mr(pd, rdma_res->memory, rdma_res->memory_size,  mr_flag);
   if (!mr) {
     printf("Failed to register memory\n");
     if (!rdma_res->is_preallocated) {
       free(rdma_res->memory);
     }
     ibv_dealloc_pd(pd);
-    ibv_destory_cq(cq);
+    ibv_destroy_cq(cq);
     ibv_close_device(dev_ctx);
     return false;
   }
@@ -131,8 +135,8 @@ bool RdmaInit(char* dev_name, uint8_t port_id, struct RdmaResource* rdma_res)
   rdma_res->cq = cq;
   rdma_res->pd = pd;
   rdma_res->mr = mr;
-  memcpy(rdma_res->dev_attr, dev_attr, sizeof(dev_attr);
-  memcpy(rdma_res->port_attr, port_attr, sizeof(port_attr));
+  memcpy(&(rdma_res->dev_attr), &dev_attr, sizeof(dev_attr));
+  memcpy(&(rdma_res->port_attr), &port_attr, sizeof(port_attr));
   return true;
 
 }

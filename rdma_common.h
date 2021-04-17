@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdlib.h>
+
 #include <infiniband/verbs.h>
 /* rdma control path */
 
@@ -29,14 +31,14 @@ struct RdmaResource
 * @param rdma_res : rdma resource should be created     
 * @return : true on success, false on error
 **/
-bool RdmaInit(char* dev_name, uint8_t port_id, RdmaResource* rdma_res);
+bool RdmaInit(char* dev_name, uint8_t port_id, struct RdmaResource* rdma_res);
 
 /**
 * RdmaDestoryRes - Destroy all rdma resource
 * @param rdma_res : rdma resource should be destroyed
 * @return : true on success, false on error
 **/
-bool RdmaDestroyRes(RdmaResource* rdma_res);
+bool RdmaDestroyRes(struct RdmaResource* rdma_res);
 //bool RdmaCreateQueuePair();
 
 
