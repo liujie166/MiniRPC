@@ -11,13 +11,16 @@
 
 #define CQ_MAX_DEPTH 128
 #define QP_MAX_DEPTH 128
+#define WR_MAX_SGE 1
+#define MAX_INLINE_SIZE 256
 struct RdmaResource
 {
   struct ibv_context* dev_ctx;
   struct ibv_device_attr dev_attr;
   struct ibv_port_attr port_attr;
   struct ibv_pd* pd;
-  struct ibv_cq* cq;
+  struct ibv_cq* send_cq;
+  struct ibv_cq* recv_cq;
   bool is_preallocated;
   void* memory;
   size_t memory_size;
@@ -39,8 +42,18 @@ bool RdmaInit(char* dev_name, uint8_t port_id, struct RdmaResource* rdma_res);
 * @return : true on success, false on error
 **/
 bool RdmaDestroyRes(struct RdmaResource* rdma_res);
-//bool RdmaCreateQueuePair();
 
+/**
+* @param qp       : point of point to qp
+* @param rdma_res : necessary rdma resource to create qp
+* @return : true on success, false on error
+**/
+bool RdmaCreateQueuePair(struct ibv_qp** qp, struct RdmaResource* rdma_res);
 
+/**
+* @param qp : point to qp
+* @return : true on success, false on error
+**/
+bool RdmaDestroyQueuePair(struct ibv_qp* qp);
 #endif // !RDMA_COMMON_H_
 

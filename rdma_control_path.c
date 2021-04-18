@@ -95,8 +95,9 @@ bool RdmaInit(char* dev_name, uint8_t port_id, struct RdmaResource* rdma_res)
   }
 
   /* create completion queue */
-  cq = ibv_create_cq(dev_ctx, CQ_MAX_DEPTH, NULL, NULL, 0);
-  if (!cq) {
+  send_cq = ibv_create_cq(dev_ctx, CQ_MAX_DEPTH, NULL, NULL, 0);
+  recv_cq = ibv_create_cq(dev_ctx, CQ_MAX_DEPTH, NULL, NULL, 0);
+  if (!send_cq || !recv_cq) {
     printf("Failed to create cq\n");
     ibv_close_device(dev_ctx);
     return false;
@@ -106,7 +107,8 @@ bool RdmaInit(char* dev_name, uint8_t port_id, struct RdmaResource* rdma_res)
   pd = ibv_alloc_pd(dev_ctx);
   if (!pd) {
     printf("Failed to malloc pd\n");
-    ibv_destroy_cq(cq);
+    ibv_destroy_cq(send_cq);
+    ibv_destroy_cq(recv_cq);
     ibv_close_device(dev_ctx);
     return false;
   }
@@ -125,14 +127,16 @@ bool RdmaInit(char* dev_name, uint8_t port_id, struct RdmaResource* rdma_res)
       free(rdma_res->memory);
     }
     ibv_dealloc_pd(pd);
-    ibv_destroy_cq(cq);
+    ibv_destroy_cq(send_cq);
+    ibv_destroy_cq(recv_cq);
     ibv_close_device(dev_ctx);
     return false;
   }
 
   /* have a long copy at rdma_res*/
   rdma_res->dev_ctx = dev_ctx;
-  rdma_res->cq = cq;
+  rdma_res->send_cq = send_cq;
+  rdma_res->recv_cq = recv_cq;
   rdma_res->pd = pd;
   rdma_res->mr = mr;
   memcpy(&(rdma_res->dev_attr), &dev_attr, sizeof(dev_attr));
@@ -143,9 +147,16 @@ bool RdmaInit(char* dev_name, uint8_t port_id, struct RdmaResource* rdma_res)
 
 bool RdmaDestroyRes(struct RdmaResource* rdma_res)
 {
-  if (rdma_res->cq) {
-    if (ibv_destroy_cq(rdma_res->cq)) {
-      printf("Failed to destory cq\n");
+  if (rdma_res->send_cq) {
+    if (ibv_destroy_cq(rdma_res->send_cq)) {
+      printf("Failed to destory send_cq\n");
+      return false;
+    }
+  }
+
+  if (rdma_res->recv_cq) {
+    if (ibv_destroy_cq(rdma_res->recv_cq)) {
+      printf("Failed to destory recv_cq\n");
       return false;
     }
   }
@@ -178,10 +189,50 @@ bool RdmaDestroyRes(struct RdmaResource* rdma_res)
   return true;
 }
 
+bool RdmaCreateQueuePair(struct ibv_qp** qp, struct RdmaResource* rdma_res)
+{
+  struct ibv_qp_init_attr qp_attr;
+  memset(&qp_attr, 0, sizeof(qp_attr));
+
+  /* qp type select RC for write/read */
+  qp_attr.qp_type = IBV_QPT_RC;
+
+  qp_attr.send_cq = rdma_res->send_cq;
+  qp_attr.recv_cq = rdma_res->recv_cq;
+
+  qp_attr.cap.max_send_wr = QP_MAX_DEPTH;
+  qp_attr.cap.max_recv_wr = QP_MAX_DEPTH;
+
+  qp_attr.cap.max_send_sge = WR_MAX_SGE;
+  qp_attr.cap.max_recv_sge = WR_MAX_SGE;
+
+  qp_attr.cap.max_inline_data = MAX_INLINE_SIZE;
+  
+  *qp = ibv_create_qp(rdma_res->pd, &qp_attr);
+  if (!(*qp)) {
+    printf("Failed to create qp, whose qp_num is %d\n", *qp->qp_num);
+    return false;
+  }
+
+  return true;
+}
+
+bool RdmaDestroyQueuePair(struct ibv_qp* qp)
+{
+  if (ibv_destroy_qp(qp)) {
+    printf("Failed to destroy qp, whose qp_num is %d\n", qp->qp_num);
+    return false;
+  }
+  return true;
+}
+
 void main()
 {
   struct RdmaResource rdma_res;
   rdma_res.is_preallocated = false;
   RdmaInit((char*)NULL, 0, &rdma_res);
   RdmaDestroyRes(&rdma_res);
+  struct ibv_qp* qp;
+  RdmaCreateQueuePair(&qp, &rdma_res);
+  RdmaDestroyQueuePair(qp);
 }
