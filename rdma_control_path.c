@@ -11,7 +11,8 @@ bool RdmaInit(char* dev_name, uint8_t port_id, struct RdmaResource* rdma_res)
   struct ibv_device_attr dev_attr;
   struct ibv_port_attr port_attr;
 
-  struct ibv_cq* cq = NULL;
+  struct ibv_cq* send_cq = NULL;
+  struct ibv_cq* recv_cq = NULL;
 
   struct ibv_pd* pd = NULL;
 
@@ -45,20 +46,20 @@ bool RdmaInit(char* dev_name, uint8_t port_id, struct RdmaResource* rdma_res)
     if (dev) {
       dev_ctx = ibv_open_device(dev);
       if (!dev_ctx) {
-        printf("Failed to open device");
+        printf("Failed to open device\n");
         break;
       }
 
       memset(&dev_attr, 0, sizeof(dev_attr));
       if (ibv_query_device(dev_ctx, &dev_attr)) {
-        printf("Failed to query device");
+        printf("Failed to query device\n");
         break;
       }
 
       memset(&port_attr, 0, sizeof(port_attr));
       if (port_id > 0) {
         if (ibv_query_port(dev_ctx, port_id, &port_attr)) {
-          printf("Failed to query port");
+          printf("Failed to query port\n");
           break;
         }
         if (port_attr.state == IBV_PORT_ACTIVE) {
@@ -231,8 +232,9 @@ void main()
   struct RdmaResource rdma_res;
   rdma_res.is_preallocated = false;
   RdmaInit((char*)NULL, 0, &rdma_res);
-  RdmaDestroyRes(&rdma_res);
+  
   struct ibv_qp* qp;
   RdmaCreateQueuePair(&qp, &rdma_res);
   RdmaDestroyQueuePair(qp);
+  RdmaDestroyRes(&rdma_res);
 }
