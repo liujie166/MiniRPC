@@ -8,6 +8,7 @@ bool RdmaInit(char* dev_name, uint8_t port_id, struct RdmaResource* rdma_res)
   int dev_num = 0;
 
   bool is_resolved = false;
+  uint8_t resolved_port;
   struct ibv_device_attr dev_attr;
   struct ibv_port_attr port_attr;
 
@@ -63,6 +64,7 @@ bool RdmaInit(char* dev_name, uint8_t port_id, struct RdmaResource* rdma_res)
           break;
         }
         if (port_attr.state == IBV_PORT_ACTIVE) {
+          resolved_port = port_id;
           is_resolved = true;
           break;
         }
@@ -75,6 +77,7 @@ bool RdmaInit(char* dev_name, uint8_t port_id, struct RdmaResource* rdma_res)
           break;
         }
         if (port_attr.state == IBV_PORT_ACTIVE) {
+          resolved_port = port_i;
           is_resolved = true;
           break;
         }
@@ -136,6 +139,7 @@ bool RdmaInit(char* dev_name, uint8_t port_id, struct RdmaResource* rdma_res)
 
   /* have a long copy at rdma_res*/
   rdma_res->dev_ctx = dev_ctx;
+  rdma_res->port_id = resolved_port;
   rdma_res->send_cq = send_cq;
   rdma_res->recv_cq = recv_cq;
   rdma_res->pd = pd;
@@ -227,6 +231,69 @@ bool RdmaDestroyQueuePair(struct ibv_qp* qp)
   return true;
 }
 
+bool StateTransitionToINIT(struct ibv_qp* qp, struct RdmaResource* rdma_res)
+{
+  if (!qp) {
+    printf("qp is NULL\n");
+    return false;
+  }
+  struct ibv_qp_attr qp_attr;
+  int attr_mask;
+
+  memset(&qp_attr, 0, sizeof(qp_attr));
+  qp_attr.qp_state = IBV_QPS_INIT;
+  qp_attr.qp_num = rdma_res->port_id;
+  qp_attr.qp_access_flags = IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE | IBV_ACCESS_REMOTE_ATOMIC;
+  qp_attr.pkey_index = 0;
+
+  attr_mask = IBV_QP_STATE | IBV_QP_PKEY_INDEX | IBV_QP_PORT | IBV_QP_ACCESS_FLAGS;
+  if (ibv_modify_qp(qp, &qp_attr, attr_mask)) {
+    printf("QP state failed to transition from RESET to INIT\n");
+    return false;
+  }
+  return true;
+}
+
+bool StateTransitionToRTR(struct ibv_qp* qp, struct RdmaResource* rdma_res, struct RemoteInformation* peer_inf)
+{
+  if (!qp) {
+    printf("qp is NULL\n");
+    return false;
+  }
+  struct ibv_qp_attr qp_attr;
+  int attr_mask;
+
+  memset(&qp_attr, 0, sizeof(qp_attr));
+  qp_attr.qp_state = IBV_QPS_RTR;
+  qp_attr.path_mtu = IBV_MTU_4096;
+  qp_attr.dest_qp_num = peer_inf->remote_qpn;
+  /* set packet sequence number of recv queue as constant */
+  qp_attr.rq_psn = 1234;
+  
+  qp_attr.ah_attr.dlid = peer_inf->remote_lid;
+  qp_attr.ah_attr.sl = 0;
+  qp_attr.ah_attr.src_path_bits = 0;
+  qp_attr.ah_attr.port_num = rdma_res->port_id;
+  /* When using RoCE, GRH must be configured */
+  qp_attr.ah_attr.is_global = 1;
+  memcpy(&qp_attr.ah_attr.grh.dgid, peer_inf->remote_gid, 16);
+  qp_attr.ah_attr.grh.flow_label = 0;
+  qp_attr.ah_attr.grh.hop_limit = 1;
+  qp_attr.ah_attr.grh.sgid_index = DEFAULT_GID_INDEX;
+  qp_attr.ah_attr.grh.traffic_class = 0;
+
+  qp_attr.max_dest_rd_atomic = 16;
+  qp_attr.min_rnr_timer = 12;
+
+  attr_mask = IBV_QP_STATE | IBV_QP_AV | IBV_QP_PATH_MTU | IBV_QP_DEST_QPN 
+            | IBV_QP_RQ_PSN |= IBV_QP_MAX_DEST_RD_ATOMIC | IBV_QP_MIN_RNR_TIMER;
+
+  if (ibv_modify_qp(qp, &qp_attr, attr_mask)) {
+    printf("QP state failed to transition from INIT to RTR\n");
+    return false;
+  }
+  return true;
+}
 void main()
 {
   struct RdmaResource rdma_res;
