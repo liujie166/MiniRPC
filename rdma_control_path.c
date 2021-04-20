@@ -337,24 +337,24 @@ bool TCPSocketSetNonBlocking(int sock)
 
 int TCPSocketCreate()
 {
-  int socket;
+  int sock;
   int on = 1;
 
-  if ((socket = socket(PF_INET, SOCK_STREAM, 0)) < 0) {
+  if ((sock = socket(PF_INET, SOCK_STREAM, 0)) < 0) {
     printf("Failed to create tcp socket\n");
     return -1;
   }
 
-  if ((setsockopt(socket, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on))) < 0) {
+  if ((setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on))) < 0) {
     printf("Failed to set address reuse\n");
     return -1;
   }
 
-  TCPSocketSetNonBlocking(socket);
-  return socket;
+  TCPSocketSetNonBlocking(sock);
+  return sock;
 }
 
-int TCPSocketListen(int socket) 
+bool TCPSocketListen(int sock) 
 {
   struct sockaddr_in source_addr;
   //int socket;
@@ -365,27 +365,27 @@ int TCPSocketListen(int socket)
   source_addr.sin_addr.s_addr = htonl(INADDR_ANY);
   source_addr.sin_port = htons(7654);
   
-  if (bind(socket, (struct sockaddr*)&source_addr, sizeof(struct sockaddr)) < 0) {
+  if (bind(sock, (struct sockaddr*)&source_addr, sizeof(struct sockaddr)) < 0) {
     printf("Failed to bind\n");
-    return -1;
+    return false;
   }
 
-  if (listen(socket, 6) < 0) {
+  if (listen(sock, 6) < 0) {
     printf("Failed to listen\n");
-    return -1;
+    return false;
   }
-  return socket;
+  return true;
 }
 
-int TCPSocketAccept(int socket)
+int TCPSocketAccept(int sock)
 {
   //struct sockaddr_in remote_addr;
   //socklen_t sin_size = sizeof(struct sockaddr_in);
   //return accept(sock, (struct sockaddr*)&remote_addr, &sin_size);
-  return accept(socket, NULL, NULL);
+  return accept(sock, NULL, NULL);
 }
 
-int TCPSocketConnect(int socket, char* dest_ip)
+int TCPSocketConnect(int sock, char* dest_ip)
 {
   struct sockaddr_in dest_addr;
   //int socket;
@@ -395,7 +395,7 @@ int TCPSocketConnect(int socket, char* dest_ip)
   dest_addr.sin_port = htons(7654);
   inet_aton(dest_ip, dest_addr.sin_addr);
 
-  return connect(socket, (struct sockaddr*)&dest_addr, sizeof(struct sockaddr));
+  return connect(sock, (struct sockaddr*)&dest_addr, sizeof(struct sockaddr));
 }
 
 void main()
