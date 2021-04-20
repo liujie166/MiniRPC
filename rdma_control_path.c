@@ -393,7 +393,7 @@ int TCPSocketConnect(int sock, char* dest_ip)
 
   dest_addr.sin_family = AF_INET;//IPV4
   dest_addr.sin_port = htons(7654);
-  inet_aton(dest_ip, dest_addr.sin_addr);
+  inet_aton(dest_ip, (struct in_addr*)&dest_addr.sin_addr);
 
   return connect(sock, (struct sockaddr*)&dest_addr, sizeof(struct sockaddr));
 }
