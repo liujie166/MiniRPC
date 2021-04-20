@@ -83,5 +83,11 @@ bool StateTransitionToINIT(struct ibv_qp* qp, struct RdmaResource* rdma_res);
 **/
 bool StateTransitionToRTR(struct ibv_qp* qp, struct RdmaResource* rdma_res, struct RemoteInformation* peer_inf);
 
+/**
+* StateTransitionToRTS - Queue Pair State Transition from RTR to RTS
+* @param qp : point to qp
+* @return : true on success, false on error
+**/
+bool StateTransitionToRTS(struct ibv_qp* qp);
 #endif // !RDMA_COMMON_H_
 

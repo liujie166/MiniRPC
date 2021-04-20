@@ -274,6 +274,7 @@ bool StateTransitionToRTR(struct ibv_qp* qp, struct RdmaResource* rdma_res, stru
   qp_attr.ah_attr.sl = 0;
   qp_attr.ah_attr.src_path_bits = 0;
   qp_attr.ah_attr.port_num = rdma_res->port_id;
+
   /* When using RoCE, GRH must be configured */
   qp_attr.ah_attr.is_global = 1;
   memcpy(&qp_attr.ah_attr.grh.dgid, peer_inf->remote_gid, 16);
@@ -293,6 +294,31 @@ bool StateTransitionToRTR(struct ibv_qp* qp, struct RdmaResource* rdma_res, stru
     return false;
   }
   return true;
+}
+
+bool StateTransitionToRTS(struct ibv_qp* qp)
+{
+  struct ibv_qp_attr qp_attr;
+  int attr_mask;
+  memset(&qp_attr, 0, sizeof(struct ibv_qp_attr));
+
+  qp_attr.qp_state = IBV_QPS_RTS;
+  qp_attr.sq_psn = 1234;
+  /* rc retransmission setting */
+  qp_attr.time_out = 14;
+  qp_attr.retry_cnt = 7;
+  qp_attr.rnr_retry = 7;
+  /* atomic operation setting */
+  qp_attr.max_rd_atomic = 16;
+  qp_attr.max_dest_rd_atomic = 16;
+
+  attr_mask = IBV_QP_STATE | IBV_QP_SQ_PSN | IBV_QP_TIMEOUT | IBV_QP_RETRY_CNT 
+            | IBV_QP_RNR_RETRY | IBV_QP_MAX_QP_RD_ATOMIC;
+
+  if (ibv_modify_qp(qp, &qp_attr, attr_mask)) {
+    printf("QP state failed to transition from RTR to RTS\n");
+    return false;
+  }
 }
 void main()
 {
