@@ -6,6 +6,12 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <fcntl.h>
+#include <unistd.h>
+
 #include <infiniband/verbs.h>
 /* rdma control path */
 
@@ -89,5 +95,42 @@ bool StateTransitionToRTR(struct ibv_qp* qp, struct RdmaResource* rdma_res, stru
 * @return : true on success, false on error
 **/
 bool StateTransitionToRTS(struct ibv_qp* qp);
+
+/**
+* TCPSocketSetNonBlocking - set socket non-blocking
+* @param sock :
+* @return : true on success, false on error
+**/
+bool TCPSocketSetNonBlocking(int sock);
+
+/**
+* TCPSocketCreate - create new socket for listen/connect
+* @return : new socket >=0
+**/
+
+int TCPSocketCreate();
+/**
+* TCPSocketListen - create tcp socket to listen for peer connection
+* @param socket : socket to listen
+* @return : true on success, false on error 
+**/
+bool TCPSocketListen(int socket);
+
+
+/**
+* TCPSocketAccept - accept peer connection
+* @param socket : socket to listen 
+* @return : if ret < 0, please try again
+**/
+int TCPSocketAccept(int socket);
+
+/**
+* TCPSocketConnect - conncet to peer
+* @param socket : source socket id  
+* @param dest_ip : destination ip addr
+* @return : if ret < 0, please try again
+**/
+int TCPSocketConnect(int socket, char* dest_ip);
+
 #endif // !RDMA_COMMON_H_
 

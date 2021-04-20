@@ -320,6 +320,84 @@ bool StateTransitionToRTS(struct ibv_qp* qp)
     return false;
   }
 }
+
+bool TCPSocketSetNonBlocking(int sock)
+{
+  int flags;
+  if ((flags = fcntl(sock, F_GETFL, 0)) == -1) {
+    printf("Failed to set non-blocking when get socket flag\n");
+    return false;
+  }
+  if (fcntl(sock, F_SETFL, flags | O_NONBLOCK) == -1) {
+    printf("Failed to set non-blocking when set socket flag\n");
+    return false;
+  }
+  return true;
+}
+
+int TCPSocketCreate()
+{
+  int socket;
+  int on = 1;
+
+  if ((socket = socket(PF_INET, SOCK_STREAM, 0)) < 0) {
+    printf("Failed to create tcp socket\n");
+    return -1;
+  }
+
+  if ((setsockopt(socket, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on))) < 0) {
+    printf("Failed to set address reuse\n");
+    return -1;
+  }
+
+  TCPSocketSetNonBlocking(socket);
+  return socket;
+}
+
+int TCPSocketListen(int socket) 
+{
+  struct sockaddr_in source_addr;
+  //int socket;
+  //int on = 1;
+
+  memset(&source_addr, 0, sizeof(struct sockaddr_in));
+  source_addr.sin_family = AF_INET;//IPV4
+  source_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+  source_addr.sin_port = htons(7654);
+  
+  if (bind(socket, (struct sockaddr*)&source_addr, sizeof(struct sockaddr)) < 0) {
+    printf("Failed to bind\n");
+    return -1;
+  }
+
+  if (listen(socket, 6) < 0) {
+    printf("Failed to listen\n");
+    return -1;
+  }
+  return socket;
+}
+
+int TCPSocketAccept(int socket)
+{
+  //struct sockaddr_in remote_addr;
+  //socklen_t sin_size = sizeof(struct sockaddr_in);
+  //return accept(sock, (struct sockaddr*)&remote_addr, &sin_size);
+  return accept(socket, NULL, NULL);
+}
+
+int TCPSocketConnect(int socket, char* dest_ip)
+{
+  struct sockaddr_in dest_addr;
+  //int socket;
+  memset(&dest_addr, 0, sizeof(struct sockaddr_in));
+
+  dest_addr.sin_family = AF_INET;//IPV4
+  dest_addr.sin_port = htons(7654);
+  inet_aton(dest_ip, dest_addr.sin_addr);
+
+  return connect(socket, (struct sockaddr*)&dest_addr, sizeof(struct sockaddr));
+}
+
 void main()
 {
   struct RdmaResource rdma_res;
