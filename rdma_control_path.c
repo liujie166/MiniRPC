@@ -215,7 +215,7 @@ bool RdmaCreateQueuePair(struct ibv_qp** qp, struct RdmaResource* rdma_res)
   
   *qp = ibv_create_qp(rdma_res->pd, &qp_attr);
   if (!(*qp)) {
-    printf("Failed to create qp, whose qp_num is %d\n", *qp->qp_num);
+    printf("Failed to create qp, whose qp_num is %d\n", (*qp)->qp_num);
     return false;
   }
 
@@ -242,7 +242,7 @@ bool StateTransitionToINIT(struct ibv_qp* qp, struct RdmaResource* rdma_res)
 
   memset(&qp_attr, 0, sizeof(qp_attr));
   qp_attr.qp_state = IBV_QPS_INIT;
-  qp_attr.qp_num = rdma_res->port_id;
+  qp_attr.port_num = rdma_res->port_id;
   qp_attr.qp_access_flags = IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE | IBV_ACCESS_REMOTE_ATOMIC;
   qp_attr.pkey_index = 0;
 
@@ -287,7 +287,7 @@ bool StateTransitionToRTR(struct ibv_qp* qp, struct RdmaResource* rdma_res, stru
   qp_attr.min_rnr_timer = 12;
 
   attr_mask = IBV_QP_STATE | IBV_QP_AV | IBV_QP_PATH_MTU | IBV_QP_DEST_QPN 
-            | IBV_QP_RQ_PSN |= IBV_QP_MAX_DEST_RD_ATOMIC | IBV_QP_MIN_RNR_TIMER;
+            | IBV_QP_RQ_PSN | IBV_QP_MAX_DEST_RD_ATOMIC | IBV_QP_MIN_RNR_TIMER;
 
   if (ibv_modify_qp(qp, &qp_attr, attr_mask)) {
     printf("QP state failed to transition from INIT to RTR\n");
@@ -305,7 +305,7 @@ bool StateTransitionToRTS(struct ibv_qp* qp)
   qp_attr.qp_state = IBV_QPS_RTS;
   qp_attr.sq_psn = 1234;
   /* rc retransmission setting */
-  qp_attr.time_out = 14;
+  qp_attr.timeout = 14;
   qp_attr.retry_cnt = 7;
   qp_attr.rnr_retry = 7;
   /* atomic operation setting */
