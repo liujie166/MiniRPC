@@ -36,11 +36,11 @@ struct RdmaResource
   struct ibv_mr* mr;
 };
 
-struct RemoteInformation
+struct RouteInf
 {
   uint32_t remote_qpn;
   uint16_t remote_lid;
-  uint8_t* remote_gid;
+  union ibv_gid remote_gid;
 };
 /**
 * RdmaInit - resolve rdma device and create needed resource
@@ -88,7 +88,7 @@ bool StateTransitionToINIT(struct ibv_qp* qp, struct RdmaResource* rdma_res);
 * @param peer_inf : necessary peer route information to modify qp  
 * @return : true on success, false on error
 **/
-bool StateTransitionToRTR(struct ibv_qp* qp, struct RdmaResource* rdma_res, struct RemoteInformation* peer_inf);
+bool StateTransitionToRTR(struct ibv_qp* qp, struct RdmaResource* rdma_res, struct RouteInf* peer_inf);
 
 /**
 * StateTransitionToRTS - Queue Pair State Transition from RTR to RTS
@@ -112,26 +112,51 @@ bool TCPSocketSetNonBlocking(int sock);
 int TCPSocketCreate();
 /**
 * TCPSocketListen - create tcp socket to listen for peer connection
-* @param socket : socket to listen
+* @param sock : socket to listen
 * @return : true on success, false on error 
 **/
-bool TCPSocketListen(int socket);
+bool TCPSocketListen(int sock);
 
 
 /**
 * TCPSocketAccept - accept peer connection
-* @param socket : socket to listen 
+* @param sock : socket to listen 
 * @return : if ret < 0, please try again
 **/
-int TCPSocketAccept(int socket);
+int TCPSocketAccept(int sock);
 
 /**
 * TCPSocketConnect - conncet to peer
-* @param socket : source socket id  
+* @param sock : source socket id  
 * @param dest_ip : destination ip addr
 * @return : if ret < 0, please try again
 **/
-int TCPSocketConnect(int socket, char* dest_ip);
+int TCPSocketConnect(int sock, char* dest_ip);
 
+/**
+* TCPSocketWrite - write data by tcp socket
+* @param sock   : socket id
+* @param buffer : write data buffer
+* @param size   : write data size
+* @return : On success, the number of bytes written is returned. On error, -1 is returned,
+**/
+int TCPSocketWrite(int sock, char* buffer, int size);
+
+/**
+* TCPSocketRead - read data by tcp socket
+* @param sock   : socket id
+* @param buffer : read data buffer
+* @param size   : read data size
+* @return : On success, the number of bytes read is returned. On error, -1 is returned,
+**/
+int TCPSocketRead(int sock, char* buffer, int size);
+
+/**
+* CreateRouteInf - create local route information to exchange
+* @param qp_num : qp number
+* @param rdma_res : 
+* @return : pointer of route information on success, NULL on error
+*/
+struct RouteInf* CreateRouteInf(uint32_t qp_num, struct RdmaResource* rdma_res);
 #endif // !RDMA_COMMON_H_
 

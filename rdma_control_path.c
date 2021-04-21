@@ -254,7 +254,7 @@ bool StateTransitionToINIT(struct ibv_qp* qp, struct RdmaResource* rdma_res)
   return true;
 }
 
-bool StateTransitionToRTR(struct ibv_qp* qp, struct RdmaResource* rdma_res, struct RemoteInformation* peer_inf)
+bool StateTransitionToRTR(struct ibv_qp* qp, struct RdmaResource* rdma_res, struct RouteInf* peer_inf)
 {
   if (!qp) {
     printf("qp is NULL\n");
@@ -277,7 +277,7 @@ bool StateTransitionToRTR(struct ibv_qp* qp, struct RdmaResource* rdma_res, stru
 
   /* When using RoCE, GRH must be configured */
   qp_attr.ah_attr.is_global = 1;
-  memcpy(&qp_attr.ah_attr.grh.dgid, peer_inf->remote_gid, 16);
+  memcpy(&qp_attr.ah_attr.grh.dgid, &(peer_inf->remote_gid), 16);
   qp_attr.ah_attr.grh.flow_label = 0;
   qp_attr.ah_attr.grh.hop_limit = 1;
   qp_attr.ah_attr.grh.sgid_index = DEFAULT_GID_INDEX;
@@ -398,6 +398,31 @@ int TCPSocketConnect(int sock, char* dest_ip)
   return connect(sock, (struct sockaddr*)&dest_addr, sizeof(struct sockaddr));
 }
 
+int TCPSocketWrite(int sock, char* buffer, int size)
+{
+  return write(sock, buffer, size);
+}
+
+int TCPSocketRead(int sock, char* buffer, int size)
+{
+  return read(sock, buffer, size);
+}
+
+struct RouteInf* CreateRouteInf(uint32_t qp_num, struct RdmaResource* rdma_res)
+{
+  int rc = 0;
+  struct RouteInf* route_inf = (struct RouteInf*)malloc(sizeof(struct RouteInf));
+  route_inf->remote_qpn = qp_num;
+  route_inf->remote_lid = (rdma_res->port_attr).lid;
+
+  rc = ibv_query_gid(rdma_res->dev_ctx, rdma_res->port_id, DEFAULT_GID_INDEX, &(route_inf->remote_gid));
+  if (rc) {
+    printf("Failed to query gid\n");
+    free(route_inf);
+    return NULL;
+  }
+  return route_inf;
+}
 void main()
 {
   struct RdmaResource rdma_res;
