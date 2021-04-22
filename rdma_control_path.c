@@ -457,6 +457,20 @@ void main()
   RdmaInit((char*)NULL, 0, &rdma_res);
   
   struct ibv_qp* qp;
+  int socket = TCPSocketCreate();
+  if (is_server) {
+    if (TCPSocketListen(socket)) {
+      int rc = 0;
+      while ((rc = TCPSocketAccept(socket)) < 0);
+      SendRouteInf(rc, qp->qp_num, &rdma_res);
+      int left = sizeof(struct RouteInf);
+      int total_read = 0;
+      char buf[100];
+      while (left > 0) {
+        total_read += RecvRouteInf(rc, &buf[total_read]);
+      }
+    }
+  }
   RdmaCreateQueuePair(&qp, &rdma_res);
   RdmaDestroyQueuePair(qp);
   RdmaDestroyRes(&rdma_res);
