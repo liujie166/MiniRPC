@@ -462,9 +462,9 @@ void main()
   int left = sizeof(struct RouteInf);
   int total_read = 0;
   if (is_server) {
-    TCPSocketListen(socket);
-    int rc = 0;
-    TCPSocketAccept(socket);
+    int sock = TCPSocketCreate();
+    TCPSocketListen(sock);
+    int rc = TCPSocketAccept(sock);
     SendRouteInf(rc, qp->qp_num, &rdma_res);
     while (left > 0) {
       total_read += RecvRouteInf(rc, &buffer[total_read]);
@@ -475,7 +475,7 @@ void main()
     char ip[] = "10.0.0.37";
     TCPSocketConnect(sock, ip);
     while (left > 0) {
-      total_read += RecvRouteInf(rc, &buffer[total_read]);
+      total_read += RecvRouteInf(sock, &buffer[total_read]);
     }
     SendRouteInf(sock, qp->qp_num, &rdma_res);
   }
