@@ -38,10 +38,11 @@ struct RdmaResource
 
 struct RouteInf
 {
-  uint32_t remote_qpn;
-  uint16_t remote_lid;
-  union ibv_gid remote_gid;
-};
+  uint32_t r_key;
+  uint32_t qpn;
+  uint16_t lid;
+  uint8_t  gid[16];
+}__attribute__((packed));
 /**
 * RdmaInit - resolve rdma device and create needed resource
 * @param dev_name : rdma device name
@@ -153,10 +154,11 @@ int TCPSocketRead(int sock, char* buffer, int size);
 
 /**
 * CreateRouteInf - create local route information to exchange
-* @param qp_num : qp number
+* @param sock     : socket id
+* @param qp_num   : qp number
 * @param rdma_res : 
-* @return : pointer of route information on success, NULL on error
+* @return : true on success, false on error
 */
-struct RouteInf* CreateRouteInf(uint32_t qp_num, struct RdmaResource* rdma_res);
+bool SendRouteInf(int sock, uint32_t qp_num, struct RdmaResource* rdma_res);
 #endif // !RDMA_COMMON_H_
 

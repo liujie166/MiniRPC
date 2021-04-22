@@ -266,18 +266,18 @@ bool StateTransitionToRTR(struct ibv_qp* qp, struct RdmaResource* rdma_res, stru
   memset(&qp_attr, 0, sizeof(qp_attr));
   qp_attr.qp_state = IBV_QPS_RTR;
   qp_attr.path_mtu = IBV_MTU_4096;
-  qp_attr.dest_qp_num = peer_inf->remote_qpn;
+  qp_attr.dest_qp_num = peer_inf->qpn;
   /* set packet sequence number of recv queue as constant */
   qp_attr.rq_psn = 1234;
   
-  qp_attr.ah_attr.dlid = peer_inf->remote_lid;
+  qp_attr.ah_attr.dlid = peer_inf->lid;
   qp_attr.ah_attr.sl = 0;
   qp_attr.ah_attr.src_path_bits = 0;
   qp_attr.ah_attr.port_num = rdma_res->port_id;
 
   /* When using RoCE, GRH must be configured */
   qp_attr.ah_attr.is_global = 1;
-  memcpy(&qp_attr.ah_attr.grh.dgid, &(peer_inf->remote_gid), 16);
+  memcpy(&qp_attr.ah_attr.grh.dgid, &(peer_inf->gid), 16);
   qp_attr.ah_attr.grh.flow_label = 0;
   qp_attr.ah_attr.grh.hop_limit = 1;
   qp_attr.ah_attr.grh.sgid_index = DEFAULT_GID_INDEX;
@@ -408,21 +408,47 @@ int TCPSocketRead(int sock, char* buffer, int size)
   return read(sock, buffer, size);
 }
 
-struct RouteInf* CreateRouteInf(uint32_t qp_num, struct RdmaResource* rdma_res)
+bool SendRouteInf(int sock, uint32_t qp_num, struct RdmaResource* rdma_res)
 {
   int rc = 0;
-  struct RouteInf* route_inf = (struct RouteInf*)malloc(sizeof(struct RouteInf));
-  route_inf->remote_qpn = qp_num;
-  route_inf->remote_lid = (rdma_res->port_attr).lid;
+  union ibv_gid gid;
+  struct RouteInf route_inf;
+  route_inf.r_key = htonl(rdma_res->mr->r_key);
+  route_inf.qpn = htonl(qp_num);
+  route_inf.lid = htons(rdma_res->port_attr.lid);
 
-  rc = ibv_query_gid(rdma_res->dev_ctx, rdma_res->port_id, DEFAULT_GID_INDEX, &(route_inf->remote_gid));
+  rc = ibv_query_gid(rdma_res->dev_ctx, rdma_res->port_id, DEFAULT_GID_INDEX, &gid);
   if (rc) {
     printf("Failed to query gid\n");
-    free(route_inf);
-    return NULL;
+    return false;
   }
-  return route_inf;
+  memcpy(route_inf.gid, &gid, 16);
+  int size = sizeof(struct RouteInf);
+  if (TCPSocketWrite(sock, &route_inf, size) < size) {
+    printf("Failed to send route information\n");
+    return false;
+  }
+  return true;
 }
+
+int RecvRouteInf(char* peer_inf, int sock)
+{
+  int size = sizeof(struct RouteInf);
+  //struct RouteInf* peer_inf = (struct RouteInf*)malloc(size);
+  int total_read = 0;
+  int read = 0;
+  while (total_read < size) {
+    read = TCPSocketRead(sock, peer_inf, size);
+    if (read > 0) {
+      total_read += read;
+    }
+    else {
+      return total_read;
+    }
+  }
+}
+
+
 void main()
 {
   struct RdmaResource rdma_res;
