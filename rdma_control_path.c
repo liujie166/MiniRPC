@@ -455,7 +455,7 @@ void GetRouteInf(char* buffer, struct RouteInf* inf)
   inf->r_key = ntohl(peer_inf->r_key);
   inf->qpn = ntohl(peer_inf->qpn);
   inf->lid = ntohs(peer_inf->lid);
-  memcpy(inf->gid, buffer->gid, 16);
+  memcpy(inf->gid, peer_inf->gid, 16);
 }
 
 void main(int argc, char** argv)
@@ -493,7 +493,7 @@ void main(int argc, char** argv)
     SendRouteInf(sock, qp->qp_num, &rdma_res);
   }
   struct RouteInf peer_inf;
-  GetRouteInf(buffer, peer_inf);
+  GetRouteInf(buffer, &peer_inf);
   StateTransitionToINIT(qp, &rdma_res);
   StateTransitionToRTR(qp, &rdma_res, &peer_inf);
   StateTransitionToRTS(qp);
