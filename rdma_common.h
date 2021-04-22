@@ -166,6 +166,6 @@ int SendRouteInf(int sock, uint32_t qp_num, struct RdmaResource* rdma_res);
 * @param peer_inf : peer route information
 * @return : real read size, -1 on error
 **/
-int RecvRouteInf(int sock, char peer_inf);
+int RecvRouteInf(int sock, char* peer_inf);
 #endif // !RDMA_COMMON_H_
 

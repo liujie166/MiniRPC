@@ -413,7 +413,7 @@ int SendRouteInf(int sock, uint32_t qp_num, struct RdmaResource* rdma_res)
   int rc = 0;
   union ibv_gid gid;
   struct RouteInf route_inf;
-  route_inf.r_key = htonl(rdma_res->mr->r_key);
+  route_inf.r_key = htonl(rdma_res->mr->rkey);
   route_inf.qpn = htonl(qp_num);
   route_inf.lid = htons(rdma_res->port_attr.lid);
 
@@ -425,7 +425,7 @@ int SendRouteInf(int sock, uint32_t qp_num, struct RdmaResource* rdma_res)
   memcpy(route_inf.gid, &gid, 16);
   int size = sizeof(struct RouteInf);
   int send_size = 0;
-  if ((send_size = TCPSocketWrite(sock, &route_inf, size)) < size) {
+  if ((send_size = TCPSocketWrite(sock, (char*)&route_inf, size)) < size) {
     printf("Failed to send route information\n");
     return send_size;
   }
