@@ -452,7 +452,7 @@ int RecvRouteInf(int sock, char* peer_inf)
 
 void main(int argc, char** argv)
 {
-  int is_server =0
+  int is_server = 0;
   if (getopt(argc, argv, "s") == 's') {
     is_server = 1;
   }
