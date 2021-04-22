@@ -350,7 +350,7 @@ int TCPSocketCreate()
     return -1;
   }
 
-  TCPSocketSetNonBlocking(sock);
+  //TCPSocketSetNonBlocking(sock);
   return sock;
 }
 
@@ -458,18 +458,26 @@ void main()
   
   struct ibv_qp* qp;
   int socket = TCPSocketCreate();
+  char buffer[100];
+  int left = sizeof(struct RouteInf);
+  int total_read = 0;
   if (is_server) {
-    if (TCPSocketListen(socket)) {
-      int rc = 0;
-      while ((rc = TCPSocketAccept(socket)) < 0);
-      SendRouteInf(rc, qp->qp_num, &rdma_res);
-      int left = sizeof(struct RouteInf);
-      int total_read = 0;
-      char buf[100];
-      while (left > 0) {
-        total_read += RecvRouteInf(rc, &buf[total_read]);
-      }
+    TCPSocketListen(socket);
+    int rc = 0;
+    TCPSocketAccept(socket);
+    SendRouteInf(rc, qp->qp_num, &rdma_res);
+    while (left > 0) {
+      total_read += RecvRouteInf(rc, &buffer[total_read]);
     }
+  }
+  else {
+    int sock = TCPSocketCreate();
+    char ip[] = "10.0.0.37";
+    TCPSocketConnect(sock, ip);
+    while (left > 0) {
+      total_read += RecvRouteInf(rc, &buffer[total_read]);
+    }
+    SendRouteInf(sock, qp->qp_num, &rdma_res);
   }
   RdmaCreateQueuePair(&qp, &rdma_res);
   RdmaDestroyQueuePair(qp);
