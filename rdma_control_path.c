@@ -450,8 +450,12 @@ int RecvRouteInf(int sock, char* peer_inf)
 }
 
 
-void main()
+void main(int argc, char** argv)
 {
+  int is_server =0
+  if (getopt(argc, argv, "s") == 's') {
+    is_server = 1;
+  }
   struct RdmaResource rdma_res;
   rdma_res.is_preallocated = false;
   RdmaInit((char*)NULL, 0, &rdma_res);
