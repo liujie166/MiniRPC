@@ -558,7 +558,7 @@ void main(int argc, char** argv)
     RdmaRecvHello(qp, &rdma_res);
     struct ibv_wc wc;
     while(ibv_poll_cq(rdma_res.recv_cq, 1, &wc)<=0);
-    prinf("RECV : %s\n", rdma_res.memory);
+    printf("RECV : %s\n", rdma_res.memory);
   }
   RdmaDestroyQueuePair(qp);
   RdmaDestroyRes(&rdma_res);
