@@ -472,7 +472,7 @@ void main(int argc, char** argv)
     int rc = TCPSocketAccept(sock);
     SendRouteInf(rc, qp->qp_num, &rdma_res);
     while (left > 0) {
-      total_read += RecvRouteInf(rc, &buffer[total_read]);
+      left -= RecvRouteInf(rc, &buffer[total_read]);
     }
   }
   else {
@@ -480,11 +480,11 @@ void main(int argc, char** argv)
     char ip[] = "10.0.0.37";
     TCPSocketConnect(sock, ip);
     while (left > 0) {
-      total_read += RecvRouteInf(sock, &buffer[total_read]);
+      left -= RecvRouteInf(sock, &buffer[total_read]);
     }
     SendRouteInf(sock, qp->qp_num, &rdma_res);
   }
   
-  //RdmaDestroyQueuePair(qp);
+  RdmaDestroyQueuePair(qp);
   RdmaDestroyRes(&rdma_res);
 }
