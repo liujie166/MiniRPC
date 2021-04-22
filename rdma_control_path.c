@@ -458,6 +458,57 @@ void GetRouteInf(char* buffer, struct RouteInf* inf)
   memcpy(inf->gid, peer_inf->gid, 16);
 }
 
+void RdmaSendHello(struct ibv_qp* qp,struct RdmaResource* rdma_res) {
+  struct ibv_sge sg;
+  struct ibv_send_wr wr;
+  struct ibv_send_wr* wrBad;
+  
+  char str[] = "hello MiniRPC";
+  memcpy(rdma_res->memory, str, strlen(str));
+
+  memset(&sg, 0, sizeof(sg));
+  sg.addr = (uintptr_t)rdma_res->memory;
+  sg.length = strlen(str);
+  sg.lkey = rdma_res->mr->lkey;
+
+  memset(&wr, 0, sizeof(wr));
+  wr.wr_id = 0;
+  wr.sg_list = &sg;
+  wr.num_sge = 1;
+  wr.opcode = IBV_WR_SEND;
+  wr.send_flags = IBV_SEND_SIGNALED;
+
+  if (ibv_post_send(qp, &wr, &wrBad)) {
+    Debug::notifyError("Send with RDMA_SEND failed.");
+    return false;
+  }
+  return true;
+}
+
+void RdmaRecvHello(struct ibv_qp* qp, struct RdmaResource* rdma_res) {
+  struct ibv_sge sg;
+  struct ibv_recv_wr wr;
+  struct ibv_recv_wr* wrBad;
+  int ret;
+  memset(&sg, 0, sizeof(sg));
+  char str[] = "hello MiniRPC";
+
+  sg.addr = (uintptr_t)rdma_res->memory;
+  sg.length = strlen(str);
+  sg.lkey = rdma_res->mr->lkey;
+
+  memset(&wr, 0, sizeof(wr));
+  wr.wr_id = 0;
+  wr.sg_list = &sg;
+  wr.num_sge = 1;
+  ret = ibv_post_recv(qp, &wr, &wrBad);
+  if (ret) {
+    Debug::notifyError("Receive with RDMA_RECV failed, ret = %d.", ret);
+    return false;
+  }
+  return true;
+}
+
 void main(int argc, char** argv)
 {
   int is_server = 0;
@@ -498,6 +549,17 @@ void main(int argc, char** argv)
   StateTransitionToRTR(qp, &rdma_res, &peer_inf);
   StateTransitionToRTS(qp);
   
+  if (is_server) {
+    RdmaSendHello(qp, &rdma_res);
+    printf("SEND : hello MiniRPC\n");
+  }
+  else
+  {
+    RdmaRecvHello(qp, &rdma_res);
+    struct ibv_wc wc;
+    while(ibv_poll_cq(rdma_res.recv_cq, 1, &wc)<=0);
+    prinf("RECV : %s\n", rdma_res.memory);
+  }
   RdmaDestroyQueuePair(qp);
   RdmaDestroyRes(&rdma_res);
 }
