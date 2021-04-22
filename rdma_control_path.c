@@ -512,9 +512,23 @@ int RdmaRecvHello(struct ibv_qp* qp, struct RdmaResource* rdma_res) {
 void main(int argc, char** argv)
 {
   int is_server = 0;
-  if (getopt(argc, argv, "s") == 's') {
-    is_server = 1;
+  char* ip;
+  int ch;
+  while ((ch = getopt(argc, argv, "si:")) != -1) {
+    switch (ch){
+    case 's':
+      is_server = 1; 
+      break;
+    case 'i':
+      ip = strdup(optorg);
+      break;
+    default:
+      printf("error options");
+      return;
+    }
+    
   }
+
   struct RdmaResource rdma_res;
   rdma_res.is_preallocated = false;
   RdmaInit((char*)NULL, 0, &rdma_res);
@@ -536,7 +550,6 @@ void main(int argc, char** argv)
   }
   else {
     int sock = TCPSocketCreate();
-    char ip[] = "10.0.0.37";
     TCPSocketConnect(sock, ip);
     while (left > 0) {
       left -= RecvRouteInf(sock, &buffer[total_read]);
