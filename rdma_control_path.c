@@ -461,6 +461,7 @@ void main(int argc, char** argv)
   RdmaInit((char*)NULL, 0, &rdma_res);
   
   struct ibv_qp* qp;
+  RdmaCreateQueuePair(&qp, &rdma_res);
   int socket = TCPSocketCreate();
   char buffer[100];
   int left = sizeof(struct RouteInf);
@@ -483,7 +484,7 @@ void main(int argc, char** argv)
     }
     SendRouteInf(sock, qp->qp_num, &rdma_res);
   }
-  RdmaCreateQueuePair(&qp, &rdma_res);
-  RdmaDestroyQueuePair(qp);
+  
+  //RdmaDestroyQueuePair(qp);
   RdmaDestroyRes(&rdma_res);
 }
