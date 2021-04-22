@@ -153,12 +153,19 @@ int TCPSocketWrite(int sock, char* buffer, int size);
 int TCPSocketRead(int sock, char* buffer, int size);
 
 /**
-* CreateRouteInf - create local route information to exchange
+* SendRouteInf - create local route information to exchange
 * @param sock     : socket id
 * @param qp_num   : qp number
 * @param rdma_res : 
-* @return : true on success, false on error
+* @return : real send size, -1 on error
 */
-bool SendRouteInf(int sock, uint32_t qp_num, struct RdmaResource* rdma_res);
+int SendRouteInf(int sock, uint32_t qp_num, struct RdmaResource* rdma_res);
+
+/**
+* @param sock : socket id
+* @param peer_inf : peer route information
+* @return : real read size, -1 on error
+**/
+int RecvRouteInf(int sock, char peer_inf);
 #endif // !RDMA_COMMON_H_
 

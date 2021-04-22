@@ -408,7 +408,7 @@ int TCPSocketRead(int sock, char* buffer, int size)
   return read(sock, buffer, size);
 }
 
-bool SendRouteInf(int sock, uint32_t qp_num, struct RdmaResource* rdma_res)
+int SendRouteInf(int sock, uint32_t qp_num, struct RdmaResource* rdma_res)
 {
   int rc = 0;
   union ibv_gid gid;
@@ -420,18 +420,19 @@ bool SendRouteInf(int sock, uint32_t qp_num, struct RdmaResource* rdma_res)
   rc = ibv_query_gid(rdma_res->dev_ctx, rdma_res->port_id, DEFAULT_GID_INDEX, &gid);
   if (rc) {
     printf("Failed to query gid\n");
-    return false;
+    return -1;
   }
   memcpy(route_inf.gid, &gid, 16);
   int size = sizeof(struct RouteInf);
-  if (TCPSocketWrite(sock, &route_inf, size) < size) {
+  int send_size = 0;
+  if ((send_size = TCPSocketWrite(sock, &route_inf, size)) < size) {
     printf("Failed to send route information\n");
-    return false;
+    return send_size;
   }
-  return true;
+  return send_size;
 }
 
-int RecvRouteInf(char* peer_inf, int sock)
+int RecvRouteInf(int sock, char* peer_inf)
 {
   int size = sizeof(struct RouteInf);
   //struct RouteInf* peer_inf = (struct RouteInf*)malloc(size);
