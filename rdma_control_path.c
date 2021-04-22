@@ -458,7 +458,7 @@ void GetRouteInf(char* buffer, struct RouteInf* inf)
   memcpy(inf->gid, peer_inf->gid, 16);
 }
 
-void RdmaSendHello(struct ibv_qp* qp,struct RdmaResource* rdma_res) {
+int RdmaSendHello(struct ibv_qp* qp,struct RdmaResource* rdma_res) {
   struct ibv_sge sg;
   struct ibv_send_wr wr;
   struct ibv_send_wr* wrBad;
@@ -479,13 +479,13 @@ void RdmaSendHello(struct ibv_qp* qp,struct RdmaResource* rdma_res) {
   wr.send_flags = IBV_SEND_SIGNALED;
 
   if (ibv_post_send(qp, &wr, &wrBad)) {
-    Debug::notifyError("Send with RDMA_SEND failed.");
+    printf("Send with RDMA_SEND failed.");
     return false;
   }
   return true;
 }
 
-void RdmaRecvHello(struct ibv_qp* qp, struct RdmaResource* rdma_res) {
+int RdmaRecvHello(struct ibv_qp* qp, struct RdmaResource* rdma_res) {
   struct ibv_sge sg;
   struct ibv_recv_wr wr;
   struct ibv_recv_wr* wrBad;
@@ -503,7 +503,7 @@ void RdmaRecvHello(struct ibv_qp* qp, struct RdmaResource* rdma_res) {
   wr.num_sge = 1;
   ret = ibv_post_recv(qp, &wr, &wrBad);
   if (ret) {
-    Debug::notifyError("Receive with RDMA_RECV failed, ret = %d.", ret);
+    printf("Receive with RDMA_RECV failed, ret = %d.", ret);
     return false;
   }
   return true;
