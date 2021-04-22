@@ -520,7 +520,7 @@ void main(int argc, char** argv)
       is_server = 1; 
       break;
     case 'i':
-      ip = strdup(optorg);
+      ip = strdup(optarg);
       break;
     default:
       printf("error options");
