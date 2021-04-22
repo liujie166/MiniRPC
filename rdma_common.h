@@ -167,5 +167,11 @@ int SendRouteInf(int sock, uint32_t qp_num, struct RdmaResource* rdma_res);
 * @return : real read size, -1 on error
 **/
 int RecvRouteInf(int sock, char* peer_inf);
+
+/**
+* @param buffer   : raw data received by net
+* @param peer_inf : instance user created
+**/
+void GetRouteInf(char* buffer, struct RouteInf* inf);
 #endif // !RDMA_COMMON_H_
 
